@@ -1,5 +1,3 @@
-#!/bin/bash
-
 USERID=$(id -u)
 R="\e[31m"
 G="\e[32m"
@@ -8,10 +6,12 @@ N="\e[0m"
 
 LOGS_FOLDER="/var/log/shell-roboshop"
 SCRIPT_NAME=$( echo $0 | cut -d "." -f1 )
-SCRIPT_DIR=$PWD
 LOG_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log" # /var/log/shell-script/16-logs.log
 START_TIME=$(date +%s)
+SCRIPT_DIR=$PWD # for absoulute path
 MONGODB_HOST=mongodb.anitha.fun
+MYSQL_HOST=mysql.anitha.fun
+
 mkdir -p $LOGS_FOLDER
 echo "Script started executed at: $(date)" | tee -a $LOG_FILE
 
@@ -34,65 +34,69 @@ VALIDATE(){ # functions receive inputs through args just like shell script args
 
 nodejs_setup(){
     dnf module disable nodejs -y &>>$LOG_FILE
-    VALIDATE $? "disabling nodejs"
-    dnf module enable nodejs:20 -y &>>$LOG_FILE
-    VALIDATE $? "enabling nodejs"
+    VALIDATE $? "Disabling NodeJS"
+    dnf module enable nodejs:20 -y  &>>$LOG_FILE
+    VALIDATE $? "Enabling NodeJS 20"
     dnf install nodejs -y &>>$LOG_FILE
-    VALIDATE $? "installing nodejs"
+    VALIDATE $? "Installing NodeJS"
+
     npm install &>>$LOG_FILE
-    VALIDATE $? "install dependencies"
+    VALIDATE $? "Install dependencies"
 }
 
 java_setup(){
-   dnf install maven -y &>>$LOG_FILE 
-   VALIDATE $? "installing maven"
-   mvn clean package  &>>$LOG_FILE
-   VALIDATE $? "packing the application"
-   mv target/shipping-1.0.jar shipping.jar
-   VALIDATE $? "renaming the artifact"
+    dnf install maven -y &>>$LOG_FILE
+    VALIDATE $? "Installing Maven"
+    mvn clean package &>>$LOG_FILE
+    VALIDATE $? "Packing the application"
+    mv target/shipping-1.0.jar shipping.jar &>>$LOG_FILE
+    VALIDATE $? "Renaming the artifact"
 }
 
 python_setup(){
     dnf install python3 gcc python3-devel -y &>>$LOG_FILE
-    VALIDATE $? "install python3"
+    VALIDATE $? "Installing Python3"
     pip3 install -r requirements.txt &>>$LOG_FILE
-    VALIDATE $? "install python dependencies"
+    VALIDATE $? "Installing dependencies"
 }
 
 app_setup(){
     id roboshop &>>$LOG_FILE
     if [ $? -ne 0 ]; then
         useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
-        VALIDATE $? "creating system user"
+        VALIDATE $? "Creating system user"
     else
-        echo -e "user already exits.... $Y skipping $N"
+        echo -e "User already exist ... $Y SKIPPING $N"
     fi
-    mkdir -p /app 
-    VALIDATE $? "creating app directory"
+    mkdir -p /app
+    VALIDATE $? "Creating app directory"
+
     curl -o /tmp/$app_name.zip https://roboshop-artifacts.s3.amazonaws.com/$app_name-v3.zip &>>$LOG_FILE
-    VALIDATE $? "creating $app_name application"
+    VALIDATE $? "Downloading $app_name application"
+
     cd /app 
-    VALIDATE $? "changeing the app directory"
+    VALIDATE $? "Changing to app directory"
+
     rm -rf /app/*
-    VALIDATE $? "removing existing code"
+    VALIDATE $? "Removing existing code"
+
     unzip /tmp/$app_name.zip &>>$LOG_FILE
     VALIDATE $? "unzip $app_name"
-    }
+}
 
 systemd_setup(){
     cp $SCRIPT_DIR/$app_name.service /etc/systemd/system/$app_name.service
-    VALIDATE $? "copy systemctl service"
+    VALIDATE $? "Copy systemctl service"
+
     systemctl daemon-reload
     systemctl enable $app_name &>>$LOG_FILE
-    VALIDATE $? "enable $app_name"
-
+    VALIDATE $? "Enable $app_name"
 }
 
 app_restart(){
     systemctl restart $app_name
-    VALIDATE $? "restarted catalogue"
+    VALIDATE $? "Restarted $app_name"
 }
-
 print_total_time(){
     END_TIME=$(date +%s)
     TOTAL_TIME=$(( $END_TIME - $START_TIME ))
