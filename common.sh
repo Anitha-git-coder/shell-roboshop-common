@@ -52,6 +52,13 @@ java_setup(){
    VALIDATE $? "renaming the artifact"
 }
 
+python_setup(){
+    dnf install python3 gcc python3-devel -y &>>$LOG_FILE
+    VALIDATE $? "install python3"
+    pip3 install -r requirements.txt &>>$LOG_FILE
+    VALIDATE $? "install python dependencies"
+}
+
 app_setup(){
     id roboshop &>>$LOG_FILE
     if [ $? -ne 0 ]; then
