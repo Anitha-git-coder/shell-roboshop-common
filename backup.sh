@@ -16,6 +16,7 @@ START_TIME=$(date +%s)
 SCRIPT_DIR=$PWD # for absoulute path
 MONGODB_HOST=mongodb.anitha.fun
 MYSQL_HOST=mysql.anitha.fun
+DAYS=${3:-14}
 
 mkdir -p $LOGS_FOLDER
 echo "Script started executed at: $(date)" | tee -a $LOG_FILE
@@ -44,3 +45,12 @@ if [ ! -d $DEST_DIR ]; then
     echo "$R $DEST_DIR does not exists $N"
     exit 1
 fi
+
+FILES=$(fine $SOURCE_DIR -name "*.log" -type f -mtime +14)
+
+if [ ! -z "${FILES}" ]; then
+echo "files found"
+else
+echo "no files to archive"
+fi
+
